@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Document Upload</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+<div class="container mt-5">
+    <h2 class="mb-4">Upload Documents</h2>
+    <form id="uploadForm">
+        <div class="mb-3">
+            <label for="applicationId" class="form-label">Application ID</label>
+            <input type="number" class="form-control" id="applicationId" required>
+        </div>
+
+        <div id="fileInputContainer">
+            <div class="file-input-group mb-3">
+                <div class="row">
+                    <div class="col-md-6">
+                        <label class="form-label">Document Type</label>
+                        <input type="text" class="form-control document-type" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Choose File</label>
+                        <input type="file" class="form-control file-input" required>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <button type="button" class="btn btn-secondary mb-3" id="addFileBtn">Add Another File</button>
+        <button type="button" class="btn btn-danger mb-3" id="removeFileBtn">Remove Last File</button>
+        <br>
+        <button type="submit" class="btn btn-primary">Upload All Documents</button>
+    </form>
+
+    <div id="responseMessage" class="mt-4"></div>
+</div>
+
+<script>
+    let fileCount = 1;
+
+    document.getElementById('addFileBtn').addEventListener('click', function() {
+        fileCount++;
+        const container = document.getElementById('fileInputContainer');
+        const newGroup = document.createElement('div');
+        newGroup.className = 'file-input-group mb-3';
+        newGroup.innerHTML = `
+            <div class="row">
+                <div class="col-md-6">
+                    <label class="form-label">Document Type</label>
+                    <input type="text" class="form-control document-type" required>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Choose File</label>
+                    <input type="file" class="form-control file-input" required>
+                </div>
+            </div>
+        `;
+        container.appendChild(newGroup);
+    });
+
+    document.getElementById('removeFileBtn').addEventListener('click', function() {
+        const container = document.getElementById('fileInputContainer');
+        const groups = container.querySelectorAll('.file-input-group');
+        if (groups.length > 1) {
+            container.removeChild(groups[groups.length - 1]);
+            fileCount--;
+        }
+    });
+
+    document.getElementById('uploadForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+
+        const applicationId = document.getElementById('applicationId').value;
+        const documentTypes = Array.from(document.querySelectorAll('.document-type')).map(input => input.value);
+        const fileInputs = Array.from(document.querySelectorAll('.file-input'));
+
+        const formData = new FormData();
+
+        // Append document types
+        documentTypes.forEach(type => {
+            formData.append('documentTypes', type);
+        });
+
+        // Append files
+        fileInputs.forEach(input => {
+            if (input.files[0]) {
+                formData.append('files', input.files[0]);
+            }
+        });
+
+        try {
+            const response = await fetch(`/api/documents/uploadmultiple/${applicationId}`, {
+                method: 'POST',
+                body: formData
+            });
+
+            const responseMessage = document.getElementById('responseMessage');
+            if (response.status === 201) {
+                const data = await response.json();
+                console.log(data);
+                responseMessage.innerHTML = `<div class="alert alert-success">Documents uploaded successfully! ${data.length} files uploaded.</div>`;
+                // Reset form
+                document.getElementById('uploadForm').reset();
+            } else if (response.status === 400) {
+                responseMessage.innerHTML = `<div class="alert alert-warning">Bad Request: Invalid document format or data.</div>`;
+            } else if (response.status === 404) {
+                responseMessage.innerHTML = `<div class="alert alert-danger">Application ID not found.</div>`;
+            } else {
+                responseMessage.innerHTML = `<div class="alert alert-danger">Server error. Please try again later.</div>`;
+            }
+        } catch (error) {
+            console.error('Upload failed:', error);
+            document.getElementById('responseMessage').innerHTML =
+                `<div class="alert alert-danger">Error uploading documents.</div>`;
+        }
+    });
+</script>
+
+</body>
+</html>

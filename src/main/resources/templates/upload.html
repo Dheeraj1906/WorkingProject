@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>Document Upload</title>
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheett">
+    </head>
+    <body>
+    <div class="container mt-5">
+        <h2 class="mb-4">Upload Document</h2>
+        <form id="uploadForm">
+            <div class="mb-3">
+                <label for="applicationId" class="form-label">Application ID</label>
+                <input type="number" class="form-control" id="applicationId" required>
+            </div>
+            <div class="mb-3">
+                <label for="documentType" class="form-label">Document Type</label>
+                <input type="text" class="form-control" id="documentType" required>
+            </div>
+            <div class="mb-3">
+                <label for="file" class="form-label">Choose File</label>
+                <input type="file" class="form-control" id="file" required>
+            </div>
+            <button type="submit" class="btn btn-primary">Upload</button>
+        </form>
+
+        <div id="responseMessage" class="mt-4"></div>
+    </div>
+
+    <script>
+        document.getElementById('uploadForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const applicationId = document.getElementById('applicationId').value;
+            const documentType = document.getElementById('documentType').value;
+            const fileInput = document.getElementById('file');
+            const file = fileInput.files[0];
+
+            const formData = new FormData();
+            formData.append('documentType', documentType);
+            formData.append('file', file);
+
+            try {
+                const response = await fetch(`/api/documents/upload/${applicationId}`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const responseMessage = document.getElementById('responseMessage');
+                if (response.status === 201) {
+                    const data = await response.json();
+                    responseMessage.innerHTML = `<div class="alert alert-success">Document uploaded successfully! ApplicationID : ${applicationId}</div>`;
+<!--                    responseMessage.innerHTML = `<div class="alert alert-success">Document uploaded successfully! ID: ${data.id}</div>`;-->
+                } else if (response.status === 400) {
+                    responseMessage.innerHTML = `<div class="alert alert-warning">Bad Request: Invalid document format or data.</div>`;
+                } else if (response.status === 404) {
+                    responseMessage.innerHTML = `<div class="alert alert-danger">Application ID not found.</div>`;
+                } else {
+                    responseMessage.innerHTML = `<div class="alert alert-danger">Server error. Please try again later.</div>`;
+                }
+            } catch (error) {
+                console.error('Upload failed:', error);
+                document.getElementById('responseMessage').innerHTML =
+                    `<div class="alert alert-danger">Error uploading document.</div>`;
+            }
+        });
+    </script>
+
+    </body>
+</html>
